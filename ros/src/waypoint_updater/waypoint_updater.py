@@ -21,7 +21,7 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 10 # Number of waypoints we will publish. You can change this number
 
 
 class WaypointUpdater(object):
@@ -32,25 +32,45 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-
+        self.traffic_waypoint_sub = rospy.Subscriber("/traffic_waypoint", Waypoint, traffic_cb)
+        #self.obstacle_waypoints_sub = rospy.Subscriber("/obstacle_waypoint", message_type, obstacle_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         # TODO: Add other member variables you need below
-
         rospy.spin()
+        self.current_pose_x = None
+        self.current_pose_y = None
+        self.current_pose_z = None
 
-    def pose_cb(self, msg):
-        # TODO: Implement
-        pass
+        self.waypoints_x = []
+        self.waypoints_y = []
+        self.waypoints_z = []
 
-    def waypoints_cb(self, waypoints):
+    def pose_cb(self, PoseStamped):
         # TODO: Implement
-        pass
+        self.current_pose_x = PoseStamped.pose.position.x
+        self.current_pose_y = PoseStamped.pose.position.y
+        self.current_pose_z = PoseStamped.pose.position.z
+        return
+
+    def waypoints_cb(self, Lane):
+        # TODO: Implement
+        # init waypionts
+        self.waypoints_x = []
+        self.waypoints_y = []
+        self.waypoints_z = []
+
+        # append waypoints        
+        for i in range(LOOKAHEAD_WPS):
+            self.waypoints_x += waypoints.pose.position.x
+            self.waypoints_y += waypoints.pose.position.y
+            self.waypoints_z += waypoints.pose.position.z
+        return
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        return msg.data
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later

@@ -46,6 +46,7 @@ class DBWNode(object):
         max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
 
+        # publish
         self.steer_pub = rospy.Publisher('/vehicle/steering_cmd',
                                          SteeringCmd, queue_size=1)
         self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd',
@@ -57,8 +58,39 @@ class DBWNode(object):
         # self.controller = TwistController(<Arguments you wish to provide>)
 
         # TODO: Subscribe to all the topics you need to
+        # Subscribe to: /current_velocity, /twist_cmd, /vehicle/dbw_enabled
+        rospy.Subscriber("/current_velocity", TwistStamped, current_velocity_cb)
+        rospy.Subscriber("/twist_cmd", TwistStamped, twist_cmd_cb)
+        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
+        
+        # class variables
+        self.controller = None
+        self.twist_x = None
+        self.twist_y = None
+        self.twist_z = None
 
+        self.twist_cmd_x = None
+        self.twist_cmd_y = None
+        self.twist_cmd_z = None
+        
         self.loop()
+
+
+    def current_velocity_cb(self, msg):
+        self.twist_x = msg.twist.linear.x
+        self.twist_y = msg.twist.linear.y
+        self.twist_z = msg.twist.linear.z
+        return
+
+    def twist_cmd_cb(self, msg):
+        self.twist_cmd_x = msg.twist.linear.x
+        self.twist_cmd_y = msg.twist.linear.y
+        self.twist_cmd_z = msg.twist.linear.z
+        return
+
+    def dbw_enabled_cb(self, msg):
+        self.dbw_enabled = msg.data
+        return
 
     def loop(self):
         rate = rospy.Rate(50) # 50Hz
