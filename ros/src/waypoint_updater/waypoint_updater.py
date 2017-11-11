@@ -32,49 +32,40 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-        self.traffic_waypoint_sub = rospy.Subscriber("/traffic_waypoint", Waypoint, traffic_cb)
+        #rospy.Subscriber("/traffic_waypoint", Int32, self.traffic_cb)
         #self.obstacle_waypoints_sub = rospy.Subscriber("/obstacle_waypoint", message_type, obstacle_cb)
 
-        self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
+        self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
 
         # TODO: Add other member variables you need below
+        self.current_pose = None
+        self.waypoints = None
         
-        self.current_pose_x = None
-        self.current_pose_y = None
-        self.current_pose_z = None
-
-        self.waypoints_x = []
-        self.waypoints_y = []
-        self.waypoints_z = []
-        rospy.loginfo('GoToPositionRequest Received, waypoint length: %d', len(waypoints_x))
-
+        #rospy.logwarn('Waypoint Updater Init, waypoint length: %d', len(self.waypoints))
+        #rospy.loginfo('this is an loginfo')
+        #rospy.logwarn('this is an logwarn') # works
+        #rospy.logerr('this is logerr') # works
+        #rospy.logfatal('this is logfatal') # works
+        
+        # Handle ROS srv requests
         rospy.spin()
-        rospy.loginfo('spin completed, waypoint length: %d', len(waypoints_x))
-
+        
     def pose_cb(self, PoseStamped):
         # TODO: Implement
-        self.current_pose_x = PoseStamped.pose.position.x
-        self.current_pose_y = PoseStamped.pose.position.y
-        self.current_pose_z = PoseStamped.pose.position.z
+        self.current_pose = PoseStamped.pose.position
+        self.final_waypoints_pub.publish()
         return
-
+        
     def waypoints_cb(self, Lane):
         # TODO: Implement
-        # init waypionts
-        self.waypoints_x = []
-        self.waypoints_y = []
-        self.waypoints_z = []
-
-        # append waypoints        
-        for i in range(LOOKAHEAD_WPS):
-            self.waypoints_x += waypoints.pose.position.x
-            self.waypoints_y += waypoints.pose.position.y
-            self.waypoints_z += waypoints.pose.position.z
+        # init waypoints
+        self.waypoints = Lane.waypoints
+        rospy.logwarn('Waypoint Updater Init, waypoint length: %d', len(self.waypoints))
         return
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        return msg.data
+        pass
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
