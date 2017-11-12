@@ -1,43 +1,41 @@
 from pid import PID
+from yaw_controller import YawController
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
 
-
+# Controller Class
 class Controller(object):
-    def __init__(self, dbw_enabled, accel_limit, decel_limit, current_velocity):
+    def __init__(self, *args, **kwargs):
+        self.yaw_controller = YawController(kwargs['wheel_base'], 
+    										kwargs['steer_ratio'], 
+    										kwargs['min_speed'], 
+    										kwargs['max_lat_accel'], 
+    										kwargs['max_steer_angle'])
+
         # init controller
-        self.dbw_enabled = dbw_enabled
-		self.accel_limit = accel_limit
-		self.decel_limit = decel_limit
-		self.current_velocity = current_velocity
+        self.accel_limit = kwargs['accel_limit']
+        self.decel_limit = kwargs['decel_limit']
 
-		# throttle_PID
-		throttle_PID = PID(1, 1, 1, accel_limit, decel_limit)
+        # throttle_PID
+        #throttle_PID = PID(1, 1, 1, self.accel_limit, self.decel_limit)
 
-		# steering PID
-		steer_PID = PID(0.15, 3, 0.0, 1, -1)
+        # steering PID
+        #steer_PID = PID(0.15, 3, 0.0, 1, -1)
 
-    def control(self, twist_cmd, current_velocity, dbw_enabled):
+    def control(self, linear_velocity, angular_velocity, current_velocity):
 
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
 
+        if (current_velocity > 15): #15m/s -> 33.5 mph
+            throttle = 0.
+        else:
+            throttle = 1.
 
-		if (current_velocity > 30) {
-			throttle = 0.;
-		} else {
-			throttle = 0.3;
-		}
+        brake = 0.
 
-		brake = 0.
-		steer = 0.
-
-
-		cte = 0
-		sample_time = 0
-
-		# get next steer value
-		#steer = self.steer_PID(cte, sample_time)
+        # get next steer value
+    	steer = self.yaw_controller.get_steering(linear_velocity, angular_velocity, current_velocity)
 
         return throttle, brake, steer
