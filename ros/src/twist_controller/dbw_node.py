@@ -97,7 +97,7 @@ class DBWNode(object):
     ### loop and publish ###
     def loop(self):
         # loop frequency
-        rate = rospy.Rate(1) # 50Hz
+        rate = rospy.Rate(50) # 50Hz
 
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
@@ -106,11 +106,11 @@ class DBWNode(object):
             #rospy.logwarn('stuff: %d', self.controller.stuff)
             
             throttle, brake, steer = self.controller.control(self.twist_cmd_v, self.twist_cmd_w, self.current_velocity)
-            rospy.logwarn('steer value: %f, v: %f, w: %f, curr_v: %f', steer, self.twist_cmd_v, self.twist_cmd_w, self.current_velocity)
+            #rospy.logwarn('steer value: %f, v: %f, w: %f, curr_v: %f', steer, self.twist_cmd_v, self.twist_cmd_w, self.current_velocity)
             
-            #rospy.logwarn('throttle: %f', throttle)
+            rospy.loginfo('steer: %f', steer)
             #rospy.logwarn('velocity: %lf', self.current_velocity)
-            #rospy.logwarn('brake: %f', brake)
+            #rospy.logwarn('steer: %f', steer)
 
             if self.dbw_enabled:
                 self.publish(throttle, brake, steer)

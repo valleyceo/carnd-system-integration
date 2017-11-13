@@ -1,5 +1,7 @@
 from pid import PID
 from yaw_controller import YawController
+from lowpass import LowPassFilter
+import math
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
@@ -19,6 +21,8 @@ class Controller(object):
 
         # throttle_PID
         #throttle_PID = PID(1, 1, 1, self.accel_limit, self.decel_limit)
+        
+        self.lpf = LowPassFilter(0.1, math.pi/6)
 
         # steering PID
         #steer_PID = PID(0.15, 3, 0.0, 1, -1)
@@ -37,5 +41,5 @@ class Controller(object):
 
         # get next steer value
     	steer = self.yaw_controller.get_steering(linear_velocity, angular_velocity, current_velocity)
-
-        return throttle, brake, steer
+    	steer_out = self.lpf.filt(steer)
+        return throttle, brake, steer_out
