@@ -44,7 +44,7 @@ class DBWNode(object):
         accel_limit = rospy.get_param('~accel_limit', 1.)
         wheel_radius = rospy.get_param('~wheel_radius', 0.2413)
         wheel_base = rospy.get_param('~wheel_base', 2.8498)
-        steer_ratio = rospy.get_param('~steer_ratio', 14.8)
+        self.steer_ratio = rospy.get_param('~steer_ratio', 14.8)
         max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
 
@@ -59,7 +59,7 @@ class DBWNode(object):
         # TODO: Create `TwistController` object
         # controller object
         self.controller = Controller(wheel_base = wheel_base,
-                                     steer_ratio = steer_ratio,
+                                     steer_ratio = self.steer_ratio,
                                      min_speed = MIN_SPEED,
                                      max_lat_accel = max_lat_accel,
                                      max_steer_angle = max_steer_angle,
@@ -74,7 +74,7 @@ class DBWNode(object):
 
         #self.prev_time = twist_cmd.header.stamp
         # message input
-        self.dbw_enabled = True
+        self.dbw_enabled = False
         self.current_velocity = 0.
         self.twist_cmd_v = 0.
         self.twist_cmd_w = 0.
@@ -97,7 +97,7 @@ class DBWNode(object):
     ### loop and publish ###
     def loop(self):
         # loop frequency
-        rate = rospy.Rate(50) # 50Hz
+        rate = rospy.Rate(5) # 50Hz
 
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
@@ -108,12 +108,12 @@ class DBWNode(object):
             throttle, brake, steer = self.controller.control(self.twist_cmd_v, self.twist_cmd_w, self.current_velocity)
             #rospy.logwarn('steer value: %f, v: %f, w: %f, curr_v: %f', steer, self.twist_cmd_v, self.twist_cmd_w, self.current_velocity)
             
-            rospy.loginfo('steer: %f', steer)
+            rospy.loginfo('steer: %f', steer*self.steer_ratio)
             #rospy.logwarn('velocity: %lf', self.current_velocity)
             #rospy.logwarn('steer: %f', steer)
 
             if self.dbw_enabled:
-                self.publish(throttle, brake, steer)
+                self.publish(throttle, brake, steer*self.steer_ratio)
 
             # sleeps at the given frequency
             rate.sleep()
