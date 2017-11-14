@@ -75,7 +75,8 @@ class DBWNode(object):
         #self.prev_time = twist_cmd.header.stamp
         # message input
         self.dbw_enabled = False
-        self.current_velocity = 0.
+        self.current_v = 0.
+        self.current_w = 0.
         self.twist_cmd_v = 0.
         self.twist_cmd_w = 0.
 
@@ -85,7 +86,8 @@ class DBWNode(object):
     ### callback functions ###
     def current_velocity_cb(self, TwistStamped_msg):
         # forward speed (in m/s)
-        self.current_velocity = TwistStamped_msg.twist.linear.x
+        self.current_v = TwistStamped_msg.twist.linear.x
+        self.current_w = TwistStamped_msg.twist.angular.z
 
     def twist_cmd_cb(self, TwistStamped_msg):
         self.twist_cmd_v = TwistStamped_msg.twist.linear.x
@@ -97,7 +99,7 @@ class DBWNode(object):
     ### loop and publish ###
     def loop(self):
         # loop frequency
-        rate = rospy.Rate(5) # 50Hz
+        rate = rospy.Rate(3) # 50Hz
 
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
@@ -105,7 +107,7 @@ class DBWNode(object):
             #rospy.logwarn('controller output: %f', self.controller.control()[0])
             #rospy.logwarn('stuff: %d', self.controller.stuff)
             
-            throttle, brake, steer = self.controller.control(self.twist_cmd_v, self.twist_cmd_w, self.current_velocity)
+            throttle, brake, steer = self.controller.control(self.twist_cmd_v, self.twist_cmd_w, self.current_v, self.current_w)
             #rospy.logwarn('steer value: %f, v: %f, w: %f, curr_v: %f', steer, self.twist_cmd_v, self.twist_cmd_w, self.current_velocity)
             
             rospy.loginfo('steer: %f', steer*self.steer_ratio)
