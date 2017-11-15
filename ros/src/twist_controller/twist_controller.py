@@ -22,24 +22,25 @@ class Controller(object):
         # throttle_PID
         #throttle_PID = PID(1, 1, 1, self.accel_limit, self.decel_limit)
         
-        self.lpf = LowPassFilter(0.2, 0.1)
+        # low pass filter
+        sampling_time = 0.2
+        self.lpf = LowPassFilter(self.accel_limit, sampling_time)
 
         # steering PID
         #steer_PID = PID(0.15, 3, 0.0, 1, -1)
 
     def control(self, command_v, command_w, current_v, current_w):
-
-        # TODO: Change the arg, kwarg list to suit your needs
-        # Return throttle, brake, steer
-
+        
+        # implement throttle
         if (current_v > 5): #15m/s -> 33.5 mph
             throttle = 0.
         else:
             throttle = .5
 
+        # implement brake
         brake = 0.
 
-        # get next steer value
+        # get steer value
     	steer = self.yaw_controller.get_steering(command_v, command_w, current_v)
     	steer_out = self.lpf.filt(steer)
 

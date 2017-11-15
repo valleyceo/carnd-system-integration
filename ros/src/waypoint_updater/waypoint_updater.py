@@ -111,12 +111,14 @@ class WaypointUpdater(object):
                 min_idx = i
         return min_idx
 
+    # returns the new closest waypoint by starting from the previous waypoint
     def get_next_closest_waypoint(self, last_idx):
 
+        min_buffer = 10 # starts n waypoints behind
         min_dist = float('inf')
 
         # look a little back
-        min_idx = max(0, last_idx-10)
+        min_idx = max(0, last_idx - min_buffers)
 
         # search for the shortest distance
         for i in range(min_idx, len(self.waypoints)):
@@ -147,7 +149,6 @@ class WaypointUpdater(object):
         # get coordinate for closest waypoint (added delay)
         closest_wp_pos = self.waypoints[self.closest_waypoint_idx].pose.pose.position
         closest_dist = self.get_dist(self.current_x, self.current_y, closest_wp_pos.x, closest_wp_pos.y)
-        #rospy.loginfo('HERE!! closest waypoint idx: %d, distance to it: %f', self.closest_waypoint_idx, closest_dist)
         #rospy.logwarn('closest waypoint idx: %d, distance to it: %f', self.closest_waypoint_idx, closest_dist)
         #rospy.logwarn('car posx %f, posy: %f, waypoint: %f, %f', self.current_x, self.current_y, closest_wp_pos.x, closest_wp_pos.y)
 
@@ -163,19 +164,15 @@ class WaypointUpdater(object):
             final_waypoints = deepcopy(self.waypoints[new_wp_begin:new_wp_end])
         else:
             final_waypoints = deepcopy(self.waypoints[new_wp_begin:])
-            final_waypoints.append(self.waypoints[:len(self.waypoints)-new_wp_end])
+            final_waypoints.append(deepcopy(self.waypoints[:len(self.waypoints)-new_wp_end]))
 
-        #for i in range(LOOKAHEAD_WPS):
-        #    next_wp_idx = (self.closest_waypoint_idx + i) % LOOKAHEAD_WPS
-        #    final_waypoints += [self.waypoints[next_wp_idx]]
-
+        # create Lane msg
         lane = Lane()
         lane.waypoints = final_waypoints
         lane.header.frame_id = '/world'
         lane.header.stamp = rospy.Time.now()
-
-        #rospy.loginfo('published final waypoints')
-        #rospy.loginfo('closest waypoint idx: %d', self.closest_waypoint_idx)
+        
+        # publish /final_waypoints topic
         self.final_waypoints_pub.publish(lane)
 
 if __name__ == '__main__':
