@@ -32,15 +32,15 @@ class Controller(object):
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
 
-        if (current_v > 7): #15m/s -> 33.5 mph
+        if (current_v > 5): #15m/s -> 33.5 mph
             throttle = 0.
         else:
-            throttle = 1.
+            throttle = .5
 
         brake = 0.
 
         # get next steer value
     	steer = self.yaw_controller.get_steering(command_v, command_w, current_v)
-    	#steer_out = self.lpf.filt(steer)
+    	steer_out = self.lpf.filt(steer)
 
-        return throttle, brake, steer
+        return throttle, brake, steer_out
