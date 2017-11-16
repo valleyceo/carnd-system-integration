@@ -3,6 +3,7 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Int32
 from copy import deepcopy
 
 import math
@@ -31,20 +32,21 @@ class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater', log_level=rospy.DEBUG)
 
-        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size = 1)
-        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size = 1)
-
-        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-        #rospy.Subscriber("/traffic_waypoint", Int32, self.traffic_cb)
-        #self.obstacle_waypoints_sub = rospy.Subscriber("/obstacle_waypoint", message_type, obstacle_cb)
-
-        self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
-
-        # TODO: Add other member variables you need below
+        # variables
         self.current_x = None
         self.current_y = None
         self.waypoints = None
         self.closest_waypoint_idx = None
+        self.traffic_light_idx = None
+
+        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size = 1)
+        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size = 1)
+        rospy.Subscriber("/traffic_waypoint", Int32, self.traffic_cb)
+        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
+        #self.obstacle_waypoints_sub = rospy.Subscriber("/obstacle_waypoint", message_type, obstacle_cb)
+
+        self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
+
         #rospy.logwarn('Waypoint Updater Init, waypoint length: %d', len(self.waypoints))
         #rospy.loginfo('this is an loginfo')
         #rospy.logwarn('this is an logwarn') # works
@@ -76,8 +78,7 @@ class WaypointUpdater(object):
         return
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        self.traffic_light_idx = msg
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -118,7 +119,7 @@ class WaypointUpdater(object):
         min_dist = float('inf')
 
         # look a little back
-        min_idx = max(0, last_idx - min_buffers)
+        min_idx = max(0, last_idx - min_buffer)
 
         # search for the shortest distance
         for i in range(min_idx, len(self.waypoints)):
@@ -137,8 +138,6 @@ class WaypointUpdater(object):
 
     def publish_final_waypoint(self):
         
-        wp_len = len(self.waypoints)
-
         # find closest waypoint
         if self.closest_waypoint_idx == None:
             self.closest_waypoint_idx = self.get_closest_waypoint()
@@ -155,23 +154,38 @@ class WaypointUpdater(object):
         # get final waypoints
         final_waypoints = []
 
-        # Get waypoints
+        # get new waypoints range
         new_wp_begin = self.closest_waypoint_idx + DELAY_IDX
         new_wp_end = self.closest_waypoint_idx + DELAY_IDX + LOOKAHEAD_WPS
+
+        if self.traffic_light_idx > 0:
+            # compute distance
+            dist = self.distance(self.waypoints, self.closest_waypoint_idx, int(self.traffic_light_idx.data))
+            rospy.logwarn('tl distance: %f', dist)
+
+            stop_idx = int(self.traffic_light_idx.data)
+            if new_wp_end > stop_idx:
+                rospy.logwarn('BREAK! at wp idx: %f, current idx: %f', stop_idx, self.closest_waypoint_idx)
+                new_wp_end = stop_idx
+
         #rospy.logwarn('new wp idx: %d, to: %d', new_wp_begin, new_wp_end)
         
+        # append to final waypoints
         if new_wp_end < len(self.waypoints):
             final_waypoints = deepcopy(self.waypoints[new_wp_begin:new_wp_end])
         else:
             final_waypoints = deepcopy(self.waypoints[new_wp_begin:])
             final_waypoints.append(deepcopy(self.waypoints[:len(self.waypoints)-new_wp_end]))
 
+        # print distance to traffic light (if found)
+        
+
         # create Lane msg
         lane = Lane()
         lane.waypoints = final_waypoints
         lane.header.frame_id = '/world'
         lane.header.stamp = rospy.Time.now()
-        
+
         # publish /final_waypoints topic
         self.final_waypoints_pub.publish(lane)
 

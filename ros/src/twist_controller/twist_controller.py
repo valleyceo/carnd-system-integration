@@ -30,18 +30,23 @@ class Controller(object):
         #steer_PID = PID(0.15, 3, 0.0, 1, -1)
 
     def control(self, command_v, command_w, current_v, current_w):
-        
+
         # implement throttle
         if (current_v > 5): #15m/s -> 33.5 mph
             throttle = 0.
         else:
-            throttle = .5
+            throttle = .3
 
         # implement brake
-        brake = 0.
-
-        # get steer value
-    	steer = self.yaw_controller.get_steering(command_v, command_w, current_v)
-    	steer_out = self.lpf.filt(steer)
+        # if command angle is above or below .2, apply brake
+        if (abs(command_w) > .2) or (command_v < .1):
+            brake = 0.2
+            throttle = 0
+            steer_out = 0.
+        else:
+            brake = 0.
+            # get steer value
+            steer = self.yaw_controller.get_steering(command_v, command_w, current_v)
+            steer_out = self.lpf.filt(steer)
 
         return throttle, brake, steer_out

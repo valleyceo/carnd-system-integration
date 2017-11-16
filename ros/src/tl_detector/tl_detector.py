@@ -11,6 +11,8 @@ import tf
 import cv2
 import yaml
 
+import math
+
 STATE_COUNT_THRESHOLD = 3
 
 class TLDetector(object):
@@ -49,13 +51,16 @@ class TLDetector(object):
         self.last_wp = -1
         self.state_count = 0
 
+        self.tl_wp = -1
+
         rospy.spin()
 
     def pose_cb(self, msg):
         self.pose = msg
 
-    def waypoints_cb(self, waypoints):
-        self.waypoints = waypoints
+    def waypoints_cb(self, Lane):
+        if self.waypoints is None:
+            self.waypoints = Lane.waypoints
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
@@ -122,6 +127,9 @@ class TLDetector(object):
         #Get classification
         return self.light_classifier.get_classification(cv_image)
 
+    def get_dist(self, p1_x, p1_y, p2_x, p2_y):
+        return math.sqrt((p1_x - p2_x)**2 + (p1_y - p2_y)**2)
+
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
             location and color
@@ -133,13 +141,50 @@ class TLDetector(object):
         """
         light = None
 
+        # return traffic light waypoint idx if already found previously
+        if self.tl_wp > 0:
+            return self.tl_wp, 0
+
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
 
-        #TODO find the closest visible traffic light (if one exists)
+        # TODO find the closest visible traffic light (if one exists)
+        
+        min_dist = float('inf')
+        min_light = None
+        search_radius = 50 # search 50m radius
+        # loop through lights
+        for i in range(len(self.lights)):
+            x = self.lights[i].pose.pose.position.x
+            y = self.lights[i].pose.pose.position.y
+            dist = self.get_dist(x, y, self.pose.pose.position.x, self.pose.pose.position.y)
 
+            if (dist < 50) and (dist < min_dist):
+                min_dist = dist
+                min_light = self.lights[i]
+
+        # if tl is within radius, find the closest waypoint and return the idx
+        if min_light != None:
+            min_wp_idx = -1
+            min_wp_dist = float('inf')
+            x = min_light.pose.pose.position.x
+            y = min_light.pose.pose.position.y
+
+            for i in range(len(self.waypoints)):
+                dist = self.get_dist(x, y, self.waypoints[i].pose.pose.position.x, self.waypoints[i].pose.pose.position.y)
+
+                if dist < min_wp_dist:
+                    min_wp_dist = dist
+                    min_wp_idx = i
+
+            # search flag
+            self.tl_wp = min_wp_idx
+
+            # return waypoint idx and light status
+            return self.tl_wp, 0
+            
         if light:
             state = self.get_light_state(light)
             return light_wp, state
