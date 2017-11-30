@@ -17,7 +17,7 @@ Here are some minimal structure which will save everyone's time and maximize tea
 #### Commitment  
 Although I don't mind if you prefer specializing on a specific topic, I highly encourage everyone to understand and go over the whole project as this project is called "systems integration". Trust me, you will most likely not go back to re-learn once we have passed.  
 
-#### Simple tools to get the balls rolling  
+#### Simple tools to get the ball rolling  
 - Pick a topic (from to do list) and dive.  
 - Create a to do list for others (please try to hack the problem into realistic ones).  
 - Go over codes and see if you can improve it.  
