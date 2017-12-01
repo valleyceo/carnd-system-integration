@@ -1,5 +1,16 @@
 # Hacker's Wiki
 
+## Resources
+
+### Tensorflow Pipeline
+
+[Traffic Light Detection and Classification with TensorFlow Object Detection API](https://becominghuman.ai/traffic-light-detection-tensorflow-api-c75fdbadac62)
+
+[Tensorflow Object Detection(official)](https://github.com/tensorflow/models/blob/master/research/object_detection/object_detection_tutorial.ipynb)
+
+Step by Step TensorFlow Object Detection API Tutorial: [part 1](https://medium.com/@WuStangDan/step-by-step-tensorflow-object-detection-api-tutorial-part-1-selecting-a-model-a02b6aabe39e) [part 2](https://medium.com/@WuStangDan/step-by-step-tensorflow-object-detection-api-tutorial-part-2-converting-dataset-to-tfrecord-47f24be9248d)
+
+
 ## ROS Environemnt
 
 ### VM Setup guide
