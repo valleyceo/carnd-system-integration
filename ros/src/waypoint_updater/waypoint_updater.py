@@ -57,6 +57,7 @@ class WaypointUpdater(object):
         rospy.spin()
         #rospy.loop()
 
+    ### Call back functions ###
     def pose_cb(self, PoseStamped):
         # TODO: Implement
         self.current_x = PoseStamped.pose.position.x
@@ -67,7 +68,7 @@ class WaypointUpdater(object):
 
         self.publish_final_waypoint()
         return
-        
+
     def waypoints_cb(self, Lane):
         # TODO: Implement
         # init waypoints
@@ -84,12 +85,15 @@ class WaypointUpdater(object):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
 
+    # get waypoint velocity
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
 
+    # set waypoint velocity
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
         waypoints[waypoint].twist.twist.linear.x = velocity
 
+    # compute path distance between two waypoints
     def distance(self, waypoints, wp1, wp2):
         dist = 0
         dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
@@ -136,6 +140,7 @@ class WaypointUpdater(object):
     def get_dist(self, p1_x, p1_y, p2_x, p2_y):
         return math.sqrt((p1_x - p2_x)**2 + (p1_y - p2_y)**2)
 
+    # compute and publish next waypoint
     def publish_final_waypoint(self):
         
         # find closest waypoint
@@ -158,6 +163,7 @@ class WaypointUpdater(object):
         new_wp_begin = self.closest_waypoint_idx + DELAY_IDX
         new_wp_end = self.closest_waypoint_idx + DELAY_IDX + LOOKAHEAD_WPS
 
+        # if traffic light is found
         if self.traffic_light_idx > 0:
             # compute distance
             dist = self.distance(self.waypoints, self.closest_waypoint_idx, int(self.traffic_light_idx.data))

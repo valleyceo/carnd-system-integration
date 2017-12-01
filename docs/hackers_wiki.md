@@ -67,7 +67,10 @@ git merge
 git add .
 git commit -m "commit message"
 git push
+```
 
+### branch control
+```
 # new branch
 git checkout <new_branch> (create a new branch)
 git push <remote_name> <branch_name>
@@ -80,11 +83,8 @@ git stash list (get all list of stash)
 git stash pop (remove the stash)
 ```
 
-### Conflict
-
-
-
-## Tensorflow Environemnt
-
-### Installation
-
+### Resolving Conflict
+```
+# check difference
+git diff
+```
