@@ -27,7 +27,19 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 LOOKAHEAD_WPS = 100 # Number of waypoints we will publish. You can change this number
 DELAY_IDX = 30
 
-# Waypoints Updater
+#######################
+# Debugging Functions #
+#######################
+def print_waypoint_state():
+    #rospy.logwarn('car pos x %f, posy: %f', self.current_x, self.current_y)
+    #rospy.logwarn('closest waypoint idx: %d, distance to it: %f', self.closest_waypoint_idx, closest_dist)
+    #rospy.logwarn('car posx %f, posy: %f, waypoint: %f, %f', self.current_x, self.current_y, closest_wp_pos.x, closest_wp_pos.y)
+    #rospy.logwarn('new wp idx: %d, to: %d', new_wp_begin, new_wp_end)
+    return
+
+###########################
+# Waypoints Updater Class #
+###########################
 class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater', log_level=rospy.DEBUG)
@@ -39,48 +51,43 @@ class WaypointUpdater(object):
         self.closest_waypoint_idx = None
         self.traffic_light_idx = None
 
+        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size = 1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size = 1)
         rospy.Subscriber("/traffic_waypoint", Int32, self.traffic_cb)
-        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-        #self.obstacle_waypoints_sub = rospy.Subscriber("/obstacle_waypoint", message_type, obstacle_cb)
-
-        self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
-
-        #rospy.logwarn('Waypoint Updater Init, waypoint length: %d', len(self.waypoints))
-        #rospy.loginfo('this is an loginfo')
-        #rospy.logwarn('this is an logwarn') # works
-        #rospy.logerr('this is logerr') # works
-        #rospy.logfatal('this is logfatal') # works
         
+        # add publisher
+        self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
+        #self.obstacle_waypoints_sub = rospy.Subscriber("/obstacle_waypoint", message_type, obstacle_cb)
+                
         # Handle ROS srv requests
         rospy.spin()
-        #rospy.loop()
 
-    ### Call back functions ###
+    # current pose callback
     def pose_cb(self, PoseStamped):
         # TODO: Implement
+        # get car's current x and y point
         self.current_x = PoseStamped.pose.position.x
         self.current_y = PoseStamped.pose.position.y
         
-        if DEBUG_MODE:
-            rospy.logwarn('car pos x %f, posy: %f', self.current_x, self.current_y)
-
+        # update final waypoint
         self.publish_final_waypoint()
         return
 
+    # base waypoints callback
     def waypoints_cb(self, Lane):
         # TODO: Implement
-        # init waypoints
+        # initialize base waypoints
         if self.waypoints is None:
             self.waypoints = Lane.waypoints
-            if DEBUG_MODE:
-                rospy.logwarn('Waypoint Updater Init, waypoint length: %d', len(self.waypoints))
+
         return
 
+    # traffic waypoints callback
     def traffic_cb(self, msg):
         self.traffic_light_idx = msg
 
+    # obstacle waypoints callback
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
@@ -104,7 +111,6 @@ class WaypointUpdater(object):
 
     # returns the closest waypoint index to the car position
     def get_closest_waypoint(self):
-
         min_dist = float('inf')
         min_idx = -1
 
@@ -143,6 +149,10 @@ class WaypointUpdater(object):
     # compute and publish next waypoint
     def publish_final_waypoint(self):
         
+        ######################
+        # find next waypoint #
+        ######################
+        
         # find closest waypoint
         if self.closest_waypoint_idx == None:
             self.closest_waypoint_idx = self.get_closest_waypoint()
@@ -153,9 +163,7 @@ class WaypointUpdater(object):
         # get coordinate for closest waypoint (added delay)
         closest_wp_pos = self.waypoints[self.closest_waypoint_idx].pose.pose.position
         closest_dist = self.get_dist(self.current_x, self.current_y, closest_wp_pos.x, closest_wp_pos.y)
-        #rospy.logwarn('closest waypoint idx: %d, distance to it: %f', self.closest_waypoint_idx, closest_dist)
-        #rospy.logwarn('car posx %f, posy: %f, waypoint: %f, %f', self.current_x, self.current_y, closest_wp_pos.x, closest_wp_pos.y)
-
+        
         # get final waypoints
         final_waypoints = []
 
@@ -163,18 +171,29 @@ class WaypointUpdater(object):
         new_wp_begin = self.closest_waypoint_idx + DELAY_IDX
         new_wp_end = self.closest_waypoint_idx + DELAY_IDX + LOOKAHEAD_WPS
 
-        # if traffic light is found
-        if self.traffic_light_idx > 0:
+        #########################
+        # process traffic light #
+        #########################
+        
+        # traffic data (-1 if traffic light is red)
+        stop_idx = int(self.traffic_light_idx.data)
+
+        # clip waypoint end if traffic light is red and in range
+        if (stop_idx > 0):
+            #rospy.logwarn('Traffic light is red, idx: %d', stop_idx)
+
             # compute distance
             dist = self.distance(self.waypoints, self.closest_waypoint_idx, int(self.traffic_light_idx.data))
             rospy.logwarn('tl distance: %f', dist)
 
-            stop_idx = int(self.traffic_light_idx.data)
-            if new_wp_end > stop_idx:
-                rospy.logwarn('BREAK! at wp idx: %f, current idx: %f', stop_idx, self.closest_waypoint_idx)
+            # if traffic is within waypoint end, clip waypoint end to traffic idx
+            if stop_idx < new_wp_end:
+                #rospy.logwarn('BREAK! at wp idx: %f, current idx: %f', stop_idx, self.closest_waypoint_idx)
                 new_wp_end = stop_idx
-
-        #rospy.logwarn('new wp idx: %d, to: %d', new_wp_begin, new_wp_end)
+            else:
+                stop_idx = -1
+        else:
+            #rospy.logwarn('No traffic light signal, idx: %d', stop_idx)
         
         # append to final waypoints
         if new_wp_end < len(self.waypoints):
@@ -183,10 +202,7 @@ class WaypointUpdater(object):
             final_waypoints = deepcopy(self.waypoints[new_wp_begin:])
             final_waypoints.append(deepcopy(self.waypoints[:len(self.waypoints)-new_wp_end]))
 
-        # print distance to traffic light (if found)
-        
-
-        # create Lane msg
+        # create waypoint message template
         lane = Lane()
         lane.waypoints = final_waypoints
         lane.header.frame_id = '/world'

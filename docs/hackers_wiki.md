@@ -1,6 +1,6 @@
 # Hacker's Wiki
 
-## Resources
+## Useful Resources
 
 ### Tensorflow Pipeline
 
@@ -10,6 +10,8 @@
 
 Step by Step TensorFlow Object Detection API Tutorial: [part 1](https://medium.com/@WuStangDan/step-by-step-tensorflow-object-detection-api-tutorial-part-1-selecting-a-model-a02b6aabe39e) [part 2](https://medium.com/@WuStangDan/step-by-step-tensorflow-object-detection-api-tutorial-part-2-converting-dataset-to-tfrecord-47f24be9248d)
 
+### Docker + GPU
+[Set up TensorFlow with Docker + GPU in Minutes](https://blog.sicara.com/tensorflow-gpu-opencv-jupyter-docker-10705b6cd1d)
 
 ## ROS Environemnt
 
