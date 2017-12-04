@@ -6,7 +6,9 @@ import math
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
 
-# Controller Class
+####################
+# Controller Class #
+####################
 class Controller(object):
     def __init__(self, *args, **kwargs):
         self.yaw_controller = YawController(kwargs['wheel_base'], 
@@ -29,6 +31,7 @@ class Controller(object):
         # steering PID
         #steer_PID = PID(0.15, 3, 0.0, 1, -1)
 
+    # compute next control command
     def control(self, command_v, command_w, current_v, current_w):
 
         # implement throttle
