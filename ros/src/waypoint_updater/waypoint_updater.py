@@ -87,7 +87,7 @@ class WaypointUpdater(object):
 
     # traffic waypoints callback
     def traffic_cb(self, msg):
-        self.traffic_light_idx = msg
+        self.traffic_light_idx = msg.data
 
     # obstacle waypoints callback
     def obstacle_cb(self, msg):
@@ -151,6 +151,10 @@ class WaypointUpdater(object):
     # compute and publish next waypoint
     def publish_final_waypoint(self):
         
+        # No signal at the beginning
+        if self.traffic_light_idx == None:
+            return
+            
         ######################
         # find next waypoint #
         ######################
@@ -176,10 +180,11 @@ class WaypointUpdater(object):
         #########################
         # process traffic light #
         #########################
-        '''
-        # traffic data (-1 if traffic light is red)
-        stop_idx = int(self.traffic_light_idx.data)
         
+        # traffic data (-1 if traffic light is red)
+        stop_idx = int(self.traffic_light_idx)
+        rospy.logwarn('Traffic light: %d', stop_idx)
+        '''
         # clip waypoint end if traffic light is red and in range
         if (stop_idx > 0):
             #rospy.logwarn('Traffic light is red, idx: %d', stop_idx)

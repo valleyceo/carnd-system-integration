@@ -50,14 +50,14 @@ class TLDetector(object):
         simulator. When testing on the vehicle, the color state will not be available. You'll need to
         rely on the position of the light and the camera image to predict it.
         '''
-        '''
+        
         # add publisher
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
         # get traffic light configuration parameters
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
-        '''
+        
         # detection classes
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
@@ -85,7 +85,7 @@ class TLDetector(object):
         """
         self.has_image = True
         self.camera_image = msg
-        #light_wp, state = self.process_traffic_lights()
+        light_wp, state = self.process_traffic_lights()
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -155,33 +155,44 @@ class TLDetector(object):
         if self.tl_wp > 0:
             return self.tl_wp, 0
 
-        # List of positions that correspond to the line to stop in front of for a given intersection
+        # list of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
-        if(self.pose):
-            car_position = self.get_closest_waypoint(self.pose.pose)
+        
+        # get car position
+        car_position = self.get_closest_waypoint(self.pose.pose)
 
-        # TODO find the closest visible traffic light (if one exists)
-        '''
+        ##############################
+        # find closest traffic light #
+        ##############################
+
         min_dist = float('inf')
         min_light = None
         search_radius = 50 # search 50m radius
-        # loop through lights
+        
+        # loop through traffic lights
         for i in range(len(self.lights)):
             x = self.lights[i].pose.pose.position.x
             y = self.lights[i].pose.pose.position.y
             dist = self.get_dist(x, y, self.pose.pose.position.x, self.pose.pose.position.y)
 
-            if (dist < 50) and (dist < min_dist):
+            # consider minimum if it is within search radius and ahead of the car
+            if (dist < search_radius) and (dist < min_dist):
                 min_dist = dist
                 min_light = self.lights[i]
 
-        # if tl is within radius, find the closest waypoint and return the idx
+        ##############################################
+        # find closest waypoint to the traffic light #
+        ##############################################
+
+        # if closest traffic light is not found (init)
         if min_light != None:
+
             min_wp_idx = -1
             min_wp_dist = float('inf')
             x = min_light.pose.pose.position.x
             y = min_light.pose.pose.position.y
 
+            # loop through waypoints
             for i in range(len(self.waypoints)):
                 dist = self.get_dist(x, y, self.waypoints[i].pose.pose.position.x, self.waypoints[i].pose.pose.position.y)
 
@@ -189,18 +200,17 @@ class TLDetector(object):
                     min_wp_dist = dist
                     min_wp_idx = i
 
-            # search flag
+            # save closest waypoint
             self.tl_wp = min_wp_idx
 
-            # return waypoint idx and light status
             return self.tl_wp, 0
-            
-        if light:
+        else:
+            # get camera state
             state = self.get_light_state(light)
+
             return light_wp, state
-        self.waypoints = None
-        '''
-        return -1, TrafficLight.UNKNOWN
+        
+        #return -1, TrafficLight.UNKNOWN
         
 if __name__ == '__main__':
     try:

@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 import numpy as np
 
-# trained model path
+# trained model path (place .pb file in /train_classifier)
 MODEL_PATH = os.path.join(os.getcwd(), '../../..', 'train_classifier')
 
 # add tensorflow models path (https://github.com/tensorflow/models)
@@ -99,7 +99,7 @@ class TLClassifier(object):
                     print('{}'.format(class_name))
 
                     # Traffic light thing
-                    self.current_light = TrafficLight.UNKNOWN
+                    self.current_light = -1 #TrafficLight.UNKNOWN
 
                     if class_name == 'Red':
                         self.current_light = 2
@@ -107,8 +107,8 @@ class TLClassifier(object):
                         self.current_light = 1
                     elif class_name == 'Yellow':
                         self.current_light = 3
-                    #print(self.current_light)
 
+                    '''
                     fx = 1345.200806
                     fy = 1353.838257
                     perceived_width_x = (boxes[i][3] - boxes[i][1]) * 800
@@ -128,5 +128,5 @@ class TLClassifier(object):
 
         # For visualization topic output
         self.image_np_deep = image
-
+        '''
         return self.current_light
