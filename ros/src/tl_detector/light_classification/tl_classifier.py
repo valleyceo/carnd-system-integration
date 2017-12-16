@@ -1,24 +1,28 @@
 from styx_msgs.msg import TrafficLight
 import sys
 import os
+import tensorflow as tf
+import numpy as np
 
 # trained model path
 MODEL_PATH = os.path.join(os.getcwd(), '../../..', 'train_classifier')
 
-# add/install tensorflow models path (https://github.com/tensorflow/models)
+# add tensorflow models path (https://github.com/tensorflow/models)
 ROOT_PATH = os.path.join(os.getcwd(), '../../../..')
 sys.path.append(os.path.join(ROOT_PATH, 'models/research/'))
 sys.path.append(os.path.join(ROOT_PATH, 'models/research/object_detection/utils'))
 
-import tensorflow as tf
-import numpy as np
+# import tensorflow models functions
 from label_map_util import load_labelmap, convert_label_map_to_categories, create_category_index
 from visualization_utils import visualize_boxes_and_labels_on_image_array
 
+##################################
+# Traffic Light Classifier Class #
+##################################
 class TLClassifier(object):
+
     def __init__(self):
         #TODO load classifier
-        #os.chdir(cwd)
         model_path = os.path.join(MODEL_PATH, "frozen_inference_graph.pb")
         label_path = os.path.join(MODEL_PATH, "train_data/label_map.pbtxt")
         NUM_CLASSES = 4
@@ -74,8 +78,6 @@ class TLClassifier(object):
         if run_network is True:
             image_np_expanded = np.expand_dims(image, axis=0)
 
-            # time0 = time.time()
-
             # Actual detection.
             with self.detection_graph.as_default():
                 (boxes, scores, classes, num) = self.sess.run(
@@ -105,7 +107,6 @@ class TLClassifier(object):
                         self.current_light = 1
                     elif class_name == 'Yellow':
                         self.current_light = 3
-                    
                     #print(self.current_light)
 
                     fx = 1345.200806
