@@ -8,7 +8,7 @@ from copy import deepcopy
 
 import math
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
 
@@ -45,6 +45,7 @@ class WaypointUpdater(object):
         rospy.init_node('waypoint_updater', log_level=rospy.DEBUG)
 
         # variables
+        self.manual_mode = True
         self.current_x = None
         self.current_y = None
         self.waypoints = None
@@ -52,8 +53,8 @@ class WaypointUpdater(object):
         self.traffic_light_idx = None
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size = 1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size = 1)
+        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size = 1)
         rospy.Subscriber("/traffic_waypoint", Int32, self.traffic_cb)
         
         # add publisher
@@ -71,7 +72,8 @@ class WaypointUpdater(object):
         self.current_y = PoseStamped.pose.position.y
         
         # update final waypoint
-        self.publish_final_waypoint()
+        if self.manual_mode == False:
+            self.publish_final_waypoint()
         return
 
     # base waypoints callback
@@ -80,7 +82,7 @@ class WaypointUpdater(object):
         # initialize base waypoints
         if self.waypoints is None:
             self.waypoints = Lane.waypoints
-
+            self.manual_mode = False
         return
 
     # traffic waypoints callback
@@ -161,8 +163,8 @@ class WaypointUpdater(object):
             self.closest_waypoint_idx = self.get_next_closest_waypoint(self.closest_waypoint_idx)
         
         # get coordinate for closest waypoint (added delay)
-        closest_wp_pos = self.waypoints[self.closest_waypoint_idx].pose.pose.position
-        closest_dist = self.get_dist(self.current_x, self.current_y, closest_wp_pos.x, closest_wp_pos.y)
+        #closest_wp_pos = self.waypoints[self.closest_waypoint_idx].pose.pose.position
+        #closest_dist = self.get_dist(self.current_x, self.current_y, closest_wp_pos.x, closest_wp_pos.y)
         
         # get final waypoints
         final_waypoints = []
@@ -170,14 +172,14 @@ class WaypointUpdater(object):
         # get new waypoints range
         new_wp_begin = self.closest_waypoint_idx + DELAY_IDX
         new_wp_end = self.closest_waypoint_idx + DELAY_IDX + LOOKAHEAD_WPS
-
+        
         #########################
         # process traffic light #
         #########################
-        
+        '''
         # traffic data (-1 if traffic light is red)
         stop_idx = int(self.traffic_light_idx.data)
-
+        
         # clip waypoint end if traffic light is red and in range
         if (stop_idx > 0):
             #rospy.logwarn('Traffic light is red, idx: %d', stop_idx)
@@ -193,7 +195,7 @@ class WaypointUpdater(object):
             else:
                 stop_idx = -1
         else:
-            #rospy.logwarn('No traffic light signal, idx: %d', stop_idx)
+            rospy.logwarn('No traffic light signal, idx: %d', stop_idx)
         
         # append to final waypoints
         if new_wp_end < len(self.waypoints):
@@ -201,6 +203,8 @@ class WaypointUpdater(object):
         else:
             final_waypoints = deepcopy(self.waypoints[new_wp_begin:])
             final_waypoints.append(deepcopy(self.waypoints[:len(self.waypoints)-new_wp_end]))
+        '''
+        final_waypoints = deepcopy(self.waypoints[new_wp_begin:new_wp_end])
 
         # create waypoint message template
         lane = Lane()

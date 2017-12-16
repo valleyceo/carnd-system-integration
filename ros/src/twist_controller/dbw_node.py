@@ -31,6 +31,8 @@ that we have created in the `__init__` function.
 
 '''
 MIN_SPEED = 15
+CONTROL_RATE = 50 # Hz
+CONTROL_PERIOD = 1.0 / CONTROL_RATE
 
 class DBWNode(object):
     def __init__(self):
@@ -47,6 +49,14 @@ class DBWNode(object):
         self.steer_ratio = rospy.get_param('~steer_ratio', 14.8)
         max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
+
+        #self.prev_time = twist_cmd.header.stamp
+        # message input
+        self.dbw_enabled = False
+        self.current_v = 0.
+        self.current_w = 0.
+        self.twist_cmd_v = 0.
+        self.twist_cmd_w = 0.
 
         # publish
         self.steer_pub = rospy.Publisher('/vehicle/steering_cmd',
@@ -72,14 +82,6 @@ class DBWNode(object):
         rospy.Subscriber("/twist_cmd", TwistStamped, self.twist_cmd_cb, queue_size = 1)
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb, queue_size = 1)
 
-        #self.prev_time = twist_cmd.header.stamp
-        # message input
-        self.dbw_enabled = False
-        self.current_v = 0.
-        self.current_w = 0.
-        self.twist_cmd_v = 0.
-        self.twist_cmd_w = 0.
-
         # loop
         self.loop()
 
@@ -99,7 +101,7 @@ class DBWNode(object):
     ### loop and publish ###
     def loop(self):
         # loop frequency
-        rate = rospy.Rate(2) # 50Hz
+        rate = rospy.Rate(CONTROL_RATE) # 50Hz
 
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
@@ -108,15 +110,15 @@ class DBWNode(object):
             #rospy.logwarn('stuff: %d', self.controller.stuff)
             
             throttle, brake, steer = self.controller.control(self.twist_cmd_v, self.twist_cmd_w, self.current_v, self.current_w)
-            #rospy.logwarn('steer value: %f, v: %f, w: %f, curr_v: %f', steer, self.twist_cmd_v, self.twist_cmd_w, self.current_velocity)
+            #rospy.logwarn('steer value: %f, v: %f, w: %f, curr_v: %f', steer, self.twist_cmd_v, self.twist_cmd_w, self.current_v)
             
-            rospy.loginfo('steer: %f', steer*self.steer_ratio)
+            #rospy.loginfo('steer: %f', steer*self.steer_ratio)
             #rospy.logwarn('velocity: %lf', self.current_velocity)
             #rospy.logwarn('steer: %f', steer)
 
             if self.dbw_enabled:
                 self.publish(throttle, brake, steer*self.steer_ratio)
-
+            
             # sleeps at the given frequency
             rate.sleep()
 
