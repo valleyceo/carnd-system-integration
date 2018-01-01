@@ -2,8 +2,6 @@ import rospy
 import numpy as np
 from pid import PID
 from yaw_controller import YawController
-#from lowpass import LowPassFilter
-#import math
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
@@ -34,14 +32,22 @@ class Controller(object):
                                          self.dbw_node.max_lat_accel,
                                          self.dbw_node.max_steer_angle)
 
+
         # Values of Kp, Ki, and Kd are from DataSpeed example
         # This is really only a proportional filter
         # (curiously, it looks like DS sets both min and max to 9.8
         # These values are intended only for the two stage controller
         self.velo_pid = PID(2.0, 0.0, 0.0, -9.8, 9.8)
 
-        # throttle_PID
-        #throttle_PID = PID(1, 1, 1, self.accel_limit, self.decel_limit)
+        # original Karsten patch... Alternates between throttle full
+        # or full braking crashes early
+        #self.velo_pid = PID(3.0, 0.1, 0.2, -1.0, 1.0)        
+        
+        # this one modified from Karsten's patch.  Got rid of I and D
+        # speed control looks great and braking at max works too.
+        # only... steering doesn't play well with it
+        #self.velo_pid = PID(2.0, 0.0, 0.0, -1.0, 1.0)
+
         # Throttle is between 0.0 and 1.0
         # Values of Kp, Ki, and Kd are from DataSpeed example
         self.accel_pid = PID(0.4, 0.1, 0.0, 0.0, 1.0)

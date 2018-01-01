@@ -77,10 +77,10 @@ class DBWNode(object):
         self.controller = Controller(self)
 
         # subscribe
-        rospy.Subscriber("/current_velocity", TwistStamped, self.current_velocity_cb)
-        rospy.Subscriber("/twist_cmd", TwistStamped, self.twist_cmd_cb, queue_size = 1)
-        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb, queue_size = 1)
-        rospy.Subscriber('/cross_track_error', Float64, self.cross_track_cb)        
+        rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cmd_cb)
+        rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
+        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
+        rospy.Subscriber('/cross_track_error', Float64, self.cross_track_cb)       
         
         # loop
         self.loop()

@@ -12,7 +12,7 @@ import tf
 import cv2
 import yaml
 
-LOOKAHEAD_WPS = 200
+LOOP_ONCE = True
 USE_CLASSIFICATION = True
 STATE_COUNT_THRESHOLD = 3
 
@@ -28,7 +28,7 @@ class TLDetector(object):
         # Car state variables
         self.pos = -1
         self.pose = None
-        self.waypoints = []
+        self.waypoints = None
         self.x_ave = 0.0
         self.y_ave = 0.0
         self.cos_rotate = 0.0
@@ -101,7 +101,8 @@ class TLDetector(object):
         return rho
 
     def waypoints_cb(self, lane):
-        self.waypoints.extend(lane.waypoints)
+        #self.waypoints.extend(lane.waypoints)
+        self.waypoints = lane.waypoints
         x_tot = 0.0
         y_tot = 0.0
         for p in self.waypoints:
@@ -133,8 +134,12 @@ class TLDetector(object):
         rospy.loginfo(self.stop_idxs)
 
     def traffic_cb(self, msg):
-        if not self.stop_idxs:
+        # It is possible that traffic_cb is called before we've had a
+        # chance to process the waypoints, so do nothing (returns None
+        # so we know if anyone tries to use this prematurely)
+        if not self.waypoints or len(msg.lights) != len(self.stop_idxs):
             return
+        
         # Note that we depend on the fact that the stop_lines and the
         # traffic lights appear in the same order in their config files
         
@@ -233,6 +238,45 @@ class TLDetector(object):
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
+            location and color.  If LOOP_ONCE is True, then alway return the last waypoint
+            as a red light.
+
+        Returns:
+            int: index of waypoint closes to the upcoming stop line for a traffic light (-1 if none exists)
+            int: ID of traffic light color (specified in styx_msgs/TrafficLight)
+
+        """
+        light = None
+
+        # List of positions that correspond to the line to stop in front of for a given intersection
+        stop_line_positions = self.config['stop_line_positions']
+        if  self.pose:
+            # car_position is now maintained by pose_cb as self.pos
+            # Find the closest visible traffic light (if one exists)
+            stop_line_wp, state, light = self.get_next_stop_line()
+        outstr = "Car position : " + str(self.pos) + " stop_line_wp : " + str(stop_line_wp)
+            #rospy.loginfo(outstr)
+            
+
+        if light:
+            if USE_CLASSIFICATION:
+                state = self.get_light_state(light)
+                #rospy.logwarn("light state: %d" % state)
+                
+            if LOOP_ONCE:
+                # Only if our position is past the last traffic light, we return the
+                # index of the very last waypoint as a red light
+                if self.pos > self.stop_idxs[-1]:
+                    state = TrafficLight.RED
+                    stop_line_wp = len(self.waypoints) - 1
+                
+            return stop_line_wp, state
+
+        return -1, TrafficLight.UNKNOWN
+
+'''
+    def process_traffic_lights(self):
+        """Finds closest visible traffic light, if one exists, and determines its
             location and color
 
         Returns:
@@ -302,7 +346,8 @@ class TLDetector(object):
             return light_wp, state
         
         #return -1, TrafficLight.UNKNOWN
-        
+'''
+
 if __name__ == '__main__':
     try:
         TLDetector()
