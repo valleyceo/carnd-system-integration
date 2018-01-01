@@ -28,22 +28,7 @@ Once you have created dbw_node, you will update this node to use the status of t
 Please note that our simulator also provides the exact location of traffic lights and their
 current status in `/vehicle/traffic_lights` message. You can use this message to build this node
 as well as to verify your TL classifier.
-
-TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
-
-# This is all in the launch files now.  Use rospy.get_param
-# If it is not the highway, then it is the churchlot.  Highway is the
-# default
-# HIGHWAY = False
-
-# if HIGHWAY:
-#     LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
-#     BRAKING_RANGE = 14.0 # This is in meters
-# else:
-#     # My version of churchlot has only 55 way points
-#     LOOKAHEAD_WPS = 30 # Number of waypoints we will publish. You can change this number
-#     BRAKING_RANGE = 15.0 # This _must_ be smaller than lookahead
 
 ###########################
 # Waypoints Updater Class #
@@ -86,9 +71,10 @@ class WaypointUpdater(object):
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
         #self.obstacle_waypoints_sub = rospy.Subscriber("/obstacle_waypoint", message_type, obstacle_cb)
         
-        # Handle ROS srv requests
+        # handle ROS srv requests
         rospy.spin()
 
+    # robust way of measuring laps
     def lap(self, rho):
         # Ugly but reasonably robust
         if rho < 0.2 and self.lap_toggle:
@@ -239,7 +225,7 @@ class WaypointUpdater(object):
         # The publish topic might start up before we have processed the waypoints
         if idx >= len(self.waypoints):
             return
-            
+
         lane = Lane()
         lane.header.frame_id = '/world'
         lane.header.stamp = rospy.Time.now()
