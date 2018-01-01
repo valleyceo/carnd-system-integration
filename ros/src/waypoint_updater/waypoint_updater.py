@@ -43,22 +43,12 @@ else:
     LOOKAHEAD_WPS = 30 # Number of waypoints we will publish. You can change this number
     BRAKING_RANGE = 15.0 # This _must_ be smaller than lookahead
 
-#######################
-# Debugging Functions #
-#######################
-def print_waypoint_state():
-    #rospy.logwarn('car pos x %f, posy: %f', self.current_x, self.current_y)
-    #rospy.logwarn('closest waypoint idx: %d, distance to it: %f', self.closest_waypoint_idx, closest_dist)
-    #rospy.logwarn('car posx %f, posy: %f, waypoint: %f, %f', self.current_x, self.current_y, closest_wp_pos.x, closest_wp_pos.y)
-    #rospy.logwarn('new wp idx: %d, to: %d', new_wp_begin, new_wp_end)
-    return
-
 ###########################
 # Waypoints Updater Class #
 ###########################
 class WaypointUpdater(object):
     def __init__(self):
-        rospy.init_node('waypoint_updater', log_level=rospy.DEBUG)
+        rospy.init_node('waypoint_updater')
 
         # variables
         #self.manual_mode = True
@@ -83,9 +73,9 @@ class WaypointUpdater(object):
         rospy.loginfo("target velocity %f" % self.target_velocity)
         
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size = 1)
-        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size = 1)
-        rospy.Subscriber("/traffic_waypoint", Int32, self.traffic_cb)
+        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
+        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
         
         # add publisher
@@ -143,7 +133,7 @@ class WaypointUpdater(object):
         return cte
     
     # current pose callback
-    def pose_cb(self, PoseStamped):
+    def pose_cb(self, msg):
         # pose_cb might be called before waypoints_cb
         if self.waypoints == []:
             return None
