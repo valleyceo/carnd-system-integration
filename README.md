@@ -10,11 +10,11 @@ This is the project repo for the final project of the Udacity Self-Driving Car N
 
 | Name | Contact | Location |
 | ------------- |:-------------| :-----|
-| Eric Kim | ericjkim9@gmail.com | Santa Clara |
-| Don MacMillen | don.macmillen@gmail.com | San Mateo |
-| Grigory Makarevich | grigorymakarevich@gmail.com | Seattle |
-| Stefan Gantner	| stefangantner@live.de | Munich |
-| Karsten Schwinne | kschwinne@gmail.com | Dortmund |
+| Eric Kim | ericjkim9@gmail.com | Santa Clara, CA |
+| Don MacMillen | don.macmillen@gmail.com | San Mateo, CA |
+| Grigory Makarevich | grigorymakarevich@gmail.com | Seattle, WA |
+| Stefan Gantner	| stefangantner@live.de | Munich, Germany |
+| Karsten Schwinne | kschwinne@gmail.com | Dortmund, Germany |
 
 </center>
 
@@ -39,18 +39,22 @@ This is the project repo for the final project of the Udacity Self-Driving Car N
 ### Docker Installation
 [Install Docker](https://docs.docker.com/engine/installation/)
 
-Build the docker container
+Build the docker container and run
 ```bash
 docker build . -t capstone
+./run.sh
 ```
 
-Run the docker file
+### NVIDIA-Docker Installation
+[Install NVIDIA-Docker](https://github.com/NVIDIA/nvidia-docker)
+
+Build and run
 ```bash
-docker run -p 4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ --rm -it capstone
+nvidia-docker build . -f Dockerfile.gpu -t capstone-gpu
+./run_cuda.sh
 ```
 
 ### Usage
-
 1. Clone the project repository
 ```bash
 git clone https://github.com/udacity/CarND-Capstone.git
@@ -64,9 +68,8 @@ pip install -r requirements.txt
 3. Make and run styx
 ```bash
 cd ros
-catkin_make
-source devel/setup.sh
-roslaunch launch/styx.launch
+rosm (=catkin_make && source devel/setup.sh)
+rosl (=roslaunch launch/styx.launch)
 ```
 4. Run the simulator
 

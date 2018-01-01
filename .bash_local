@@ -1,0 +1,2 @@
+alias rosm="catkin_make && source devel/setup.sh"
+alias rosl="roslaunch launch/styx.launch"
