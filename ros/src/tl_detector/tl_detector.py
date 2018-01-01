@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import math
 import rospy
 from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped, Pose
@@ -11,8 +12,8 @@ import tf
 import cv2
 import yaml
 
-import math
-
+LOOKAHEAD_WPS = 200
+USE_CLASSIFICATION = True
 STATE_COUNT_THRESHOLD = 3
 
 ################################
@@ -24,18 +25,27 @@ class TLDetector(object):
         # init node
         rospy.init_node('tl_detector')
 
-        # car variables
+        # Car state variables
+        self.pos = -1
         self.pose = None
-        self.waypoints = None
+        self.waypoints = []
+        self.x_ave = 0.0
+        self.y_ave = 0.0
+        self.cos_rotate = 0.0
+        self.sin_rotate = 0.0
+        self.phi = []
+        self.stop_lines = None        
         self.camera_image = None
-        self.lights = []
 
-        # traffic light variables
+        # TL state
+        config_string = rospy.get_param("/traffic_light_config")
+        self.config = yaml.load(config_string)
+
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
-        self.tl_wp = -1
+        self.stop_idxs = []
 
         # add subscriber
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
@@ -66,14 +76,97 @@ class TLDetector(object):
         rospy.spin()
 
     def pose_cb(self, msg):
-        self.pose = msg
+        if msg:
+            self.pos = self.get_index(msg.pose.position.x, msg.pose.position.y)
+            self.pose = msg
+
+    def get_index(self, x, y):
+        rho = self.get_angle(x, y)
+        # special case of wrap around when past the last waypoint
+        if not self.phi or rho > self.phi[-1]:
+            return 0
+        
+        idx = 0
+        while rho > self.phi[idx]:
+            idx += 1
+
+        return idx
+
+    def get_angle(self, x, y):
+        # First center
+        xc = x - self.x_ave
+        yc = y - self.y_ave
+        
+        # and now rotate
+        xr = xc * self.cos_rotate - yc * self.sin_rotate
+        yr = yc * self.cos_rotate + xc * self.sin_rotate
+        
+        # rho now starts at 0 and goes to 2pi for the track waypoints
+        rho = math.pi - math.atan2(xr, yr)
+        return rho
 
     def waypoints_cb(self, Lane):
-        if self.waypoints is None:
-            self.waypoints = Lane.waypoints
+        self.waypoints.extend(lane.waypoints)
+        x_tot = 0.0
+        y_tot = 0.0
+        for p in self.waypoints:
+            x_tot += p.pose.pose.position.x
+            y_tot += p.pose.pose.position.y
+
+        # We use the average values to recenter the self.waypoints
+        self.x_ave = x_tot / len(self.waypoints)
+        self.y_ave = y_tot / len(self.waypoints)
+        
+        # The very first waypoint determines the angle we need to rotate
+        # all waypoints by
+        xc = self.waypoints[0].pose.pose.position.x - self.x_ave
+        yc = self.waypoints[0].pose.pose.position.y - self.y_ave
+        rotate = math.atan2(xc, yc) + math.pi
+        self.cos_rotate = math.cos(rotate)
+        self.sin_rotate = math.sin(rotate)
+
+        for p in self.waypoints:
+            rho = self.get_angle(p.pose.pose.position.x, p.pose.pose.position.y)
+            self.phi.append(rho)
+
+        # We can only process the stop_lines after the waypoints
+        stop_line_positions = self.config['stop_line_positions']
+        for stop_line in stop_line_positions:
+            idx = self.get_index(stop_line[0], stop_line[1])
+            self.stop_idxs.append(idx)
+            
+        rospy.loginfo(self.stop_idxs)
 
     def traffic_cb(self, msg):
-        self.lights = msg.lights
+        if not self.stop_idxs:
+            return
+        # Note that we depend on the fact that the stop_lines and the
+        # traffic lights appear in the same order in their config files
+        
+        self.stop_lines = []
+        for i, light in enumerate(msg.lights):
+            sidx = self.stop_idxs[i]
+            self.stop_lines.append((sidx, light.state, light))
+        self.stop_lines.sort()
+
+    def get_next_stop_line(self):
+        if not self.stop_lines or not self.stop_idxs:
+            return (None, None, None)
+        elif self.pos > self.stop_lines[-1][0]:
+            return self.stop_lines[0]
+        idx = 0
+        num_lights = len(self.stop_lines)
+        while self.pos > self.stop_lines[idx][0]:
+            idx += 1
+            if idx >= len(self.stop_lines):
+                rospy.logerr("stop lines idx: %d" % idx)
+
+        # for debug. a positions past the last stop_line will trigger
+        # if self.pos > self.stop_lines[idx][0]:
+        #     rospy.loginfo("get_next_stop_line self.pos %d  stop_lines: %d" % \
+        #                   (self.pos, self.stop_lines[idx][0]))
+            
+        return self.stop_lines[idx]
 
     def image_cb(self, msg):
         """Identifies red lights in the incoming camera image and publishes the index
@@ -85,7 +178,7 @@ class TLDetector(object):
         """
         self.has_image = True
         self.camera_image = msg
-        light_wp, state = self.process_traffic_lights()
+        incoming_light_wp, state = self.process_traffic_lights()
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -96,13 +189,17 @@ class TLDetector(object):
         if self.state != state:
             self.state_count = 0
             self.state = state
+            light_wp = self.last_wp
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
-            light_wp = light_wp if state == TrafficLight.RED else -1
+            light_wp = incoming_light_wp if state == TrafficLight.RED or \
+                       state == TrafficLight.YELLOW else -1
             self.last_wp = light_wp
-            self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
-            self.upcoming_red_light_pub.publish(Int32(self.last_wp))
+            light_wp = self.last_wp
+
+        # Make sure we publish on every cycle
+        self.upcoming_red_light_pub.publish(Int32(light_wp))
         self.state_count += 1
 
     def get_closest_waypoint(self, pose):
@@ -115,8 +212,7 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        #TODO implement
-        return 0
+        return self.get_index(pose.position.x, pose.position.y)
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
@@ -151,66 +247,24 @@ class TLDetector(object):
         """
         light = None
 
-        # return traffic light waypoint idx if already found previously
-        if self.tl_wp > 0:
-            return self.tl_wp, 0
-
-        # list of positions that correspond to the line to stop in front of for a given intersection
+        # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
-        
-        # get car position
-        car_position = self.get_closest_waypoint(self.pose.pose)
+        if  self.pose:
+            # car_position is now maintained by pose_cb as self.pos
+            # Find the closest visible traffic light (if one exists)
+            stop_line_wp, state, light = self.get_next_stop_line()
+        outstr = "Car position : " + str(self.pos) + " stop_line_wp : " + str(stop_line_wp)
+            #rospy.loginfo(outstr)
+            
 
-        ##############################
-        # find closest traffic light #
-        ##############################
+        if light:
+            if USE_CLASSIFICATION:
+                state = self.get_light_state(light)
+                rospy.logwarn("light state: %d" % state)
+                
+            return stop_line_wp, state
 
-        min_dist = float('inf')
-        min_light = None
-        search_radius = 50 # search 50m radius
-        
-        # loop through traffic lights
-        for i in range(len(self.lights)):
-            x = self.lights[i].pose.pose.position.x
-            y = self.lights[i].pose.pose.position.y
-            dist = self.get_dist(x, y, self.pose.pose.position.x, self.pose.pose.position.y)
-
-            # consider minimum if it is within search radius and ahead of the car
-            if (dist < search_radius) and (dist < min_dist):
-                min_dist = dist
-                min_light = self.lights[i]
-
-        ##############################################
-        # find closest waypoint to the traffic light #
-        ##############################################
-
-        # if closest traffic light is not found (init)
-        if min_light != None:
-
-            min_wp_idx = -1
-            min_wp_dist = float('inf')
-            x = min_light.pose.pose.position.x
-            y = min_light.pose.pose.position.y
-
-            # loop through waypoints
-            for i in range(len(self.waypoints)):
-                dist = self.get_dist(x, y, self.waypoints[i].pose.pose.position.x, self.waypoints[i].pose.pose.position.y)
-
-                if dist < min_wp_dist:
-                    min_wp_dist = dist
-                    min_wp_idx = i
-
-            # save closest waypoint
-            self.tl_wp = min_wp_idx
-
-            return self.tl_wp, 0
-        else:
-            # get camera state
-            state = self.get_light_state(light)
-
-            return light_wp, state
-        
-        #return -1, TrafficLight.UNKNOWN
+        return -1, TrafficLight.UNKNOWN
         
 if __name__ == '__main__':
     try:

@@ -19,23 +19,20 @@ ANGLE_EPS = 0.001
 # Controller Class #
 ####################
 class Controller(object):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, dbw_node):
+        self.dbw_node = dbw_node
         self.min_speed = 0.1
 
         # This assumes that the gas tank is always full
-        self.vehicle_mass = kwargs['vehicle_mass'] + \
-                            GAS_DENSITY * kwargs['fuel_capacity'] + \
+        self.vehicle_mass = self.dbw_node.vehicle_mass + \
+                            GAS_DENSITY * self.dbw_node.fuel_capacity + \
                             PASSENGER_MASS
-
-        self.yaw_controller = YawController(kwargs['wheel_base'], 
-    										kwargs['steer_ratio'], 
-    										kwargs['min_speed'], 
-    										kwargs['max_lat_accel'], 
-    										kwargs['max_steer_angle'])
-
-        # init controller
-        self.accel_limit = kwargs['accel_limit']
-        self.decel_limit = kwargs['decel_limit']
+        
+        self.yaw_control = YawController(self.dbw_node.wheel_base,
+                                         self.dbw_node.steer_ratio,
+                                         self.min_speed,
+                                         self.dbw_node.max_lat_accel,
+                                         self.dbw_node.max_steer_angle)
 
         # Values of Kp, Ki, and Kd are from DataSpeed example
         # This is really only a proportional filter
@@ -52,10 +49,6 @@ class Controller(object):
         # PID for cross track error.  Meant to replace yaw_control
         # DOES NOT WORK WELL
         self.cte_pid = PID(0.2, 0.001, 0.85)
-
-        # low pass filter
-        #sampling_time = 0.2
-        #self.lpf = LowPassFilter(self.accel_limit, sampling_time)
 
     # This only does yaw control at constant throttle.  Now used
     # for debugging only
