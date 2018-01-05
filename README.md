@@ -72,6 +72,7 @@ rosm (=catkin_make && source devel/setup.sh)
 
 # for highway simulation
 rosl (=roslaunch launch/styx.launch)
+
 # for test lot simulation
 rosl2 (=roslaunch launch/church.launch)
 ```

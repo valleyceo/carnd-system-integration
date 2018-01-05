@@ -255,7 +255,7 @@ class TLDetector(object):
             # Find the closest visible traffic light (if one exists)
             stop_line_wp, state, light = self.get_next_stop_line()
         outstr = "Car position : " + str(self.pos) + " stop_line_wp : " + str(stop_line_wp)
-            #rospy.loginfo(outstr)
+        rospy.logwarn(outstr)
             
 
         if light:
