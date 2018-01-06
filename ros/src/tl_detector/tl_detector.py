@@ -236,7 +236,7 @@ class TLDetector(object):
     def get_dist(self, p1_x, p1_y, p2_x, p2_y):
         return math.sqrt((p1_x - p2_x)**2 + (p1_y - p2_y)**2)
 
-    def process_traffic_lights(self):
+    def process_traffic_lights2(self):
         """Finds closest visible traffic light, if one exists, and determines its
             location and color.  If LOOP_ONCE is True, then alway return the last waypoint
             as a red light.
@@ -254,8 +254,8 @@ class TLDetector(object):
             # car_position is now maintained by pose_cb as self.pos
             # Find the closest visible traffic light (if one exists)
             stop_line_wp, state, light = self.get_next_stop_line()
-        outstr = "Car position : " + str(self.pos) + " stop_line_wp : " + str(stop_line_wp)
-        rospy.logwarn(outstr)
+            outstr = "Car position : " + str(self.pos) + " stop_line_wp : " + str(stop_line_wp)
+            #rospy.logwarbn(outstr)
             
 
         if light:
@@ -273,7 +273,6 @@ class TLDetector(object):
             return stop_line_wp, state
 
         return -1, TrafficLight.UNKNOWN
-
 '''
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its

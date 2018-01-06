@@ -13,6 +13,17 @@ Step by Step TensorFlow Object Detection API Tutorial: [part 1](https://medium.c
 ### Docker + GPU
 [Set up TensorFlow with Docker + GPU in Minutes](https://blog.sicara.com/tensorflow-gpu-opencv-jupyter-docker-10705b6cd1d)
 
+remove all stopped containers, dangling images, and build cache
+```
+docker system prune
+```
+
+remove all docker images:
+```
+docker rmi $(docker images -a -q)
+```
+
+
 ## ROS Environemnt
 
 ### VM Setup guide
