@@ -187,7 +187,7 @@ class WaypointUpdater(object):
 
     # traffic waypoints callback
     def traffic_cb(self, msg):
-        self.red_light = msg
+        self.red_light = msg.data
         outstr = "Red light msg : " + str(self.red_light)
         rospy.loginfo(outstr)
         return

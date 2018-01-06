@@ -236,7 +236,7 @@ class TLDetector(object):
     def get_dist(self, p1_x, p1_y, p2_x, p2_y):
         return math.sqrt((p1_x - p2_x)**2 + (p1_y - p2_y)**2)
 
-    def process_traffic_lights2(self):
+    def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
             location and color.  If LOOP_ONCE is True, then alway return the last waypoint
             as a red light.
