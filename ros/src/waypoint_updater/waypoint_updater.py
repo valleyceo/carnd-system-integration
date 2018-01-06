@@ -13,6 +13,10 @@ ONE_MPH = 0.44704
 CREEP_VELOCITY = 1.5
 CREEP_RANGE = 30
 MIN_DISTANCE = 40  
+LOOKAHEAD_WPS_HIGHWAY = 200
+LOOKAHEAD_WPS_TESTLOT = 10
+BRAKE_RANGE_HIGHWAY = 14.0
+BRAKE_RANGE_TESTLOT = 15.0
 
 # Back down on the max velocity to ensure we do not exceed
 VELOCITY_MARGIN = 0.965
@@ -53,11 +57,17 @@ class WaypointUpdater(object):
 
         # the param is in km per hour. Dividing by 3.6 give mps
         max_velocity = float(rospy.get_param("/waypoint_loader/velocity")) / 3.6
+
+        # adjust lookahead wps and braking range based on velocity
+        if max_velocity > 5:
+            self.lookahead_wps = LOOKAHEAD_WPS_HIGHWAY
+            self.braking_range = BRAKE_RANGE_HIGHWAY
+        else:
+            self.lookahead_wps = LOOKAHEAD_WPS_TESTLOT
+            self.braking_range = BRAKE_RANGE_TESTLOT
+
         self.target_velocity = max_velocity * VELOCITY_MARGIN
         rospy.loginfo("target velocity %f" % self.target_velocity)
-
-        self.lookahead_wps = rospy.get_param("/waypoint_loader/num_wps")
-        self.braking_range = float(rospy.get_param("/waypoint_loader/brake_range"))
         
         # add subscriber
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
